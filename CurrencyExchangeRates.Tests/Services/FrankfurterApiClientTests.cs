@@ -73,6 +73,24 @@ public sealed class FrankfurterApiClientTests
 	}
 
 	[Fact]
+	public async Task GetHistoricalRatesAsync_OmitsGroupQuery_WhenGroupIsNotProvided()
+	{
+		var client = CreateClient(request =>
+		{
+			Assert.Equal("https://example.test/rates?base=USD&quotes=JPY&from=2026-01-01", request.RequestUri?.ToString());
+			return CreateJsonResponse("""
+				[
+				  { "date": "2026-01-01", "rate": 155.1 }
+				]
+				""");
+		});
+
+		var history = await client.GetHistoricalRatesAsync("USD", "JPY", new DateOnly(2026, 1, 1), null);
+
+		Assert.Single(history);
+	}
+
+	[Fact]
 	public async Task GetLatestRateAsync_UsesFrankfurterErrorMessage_WhenJsonErrorBodyExists()
 	{
 		var client = CreateClient(_ => CreateJsonResponse(
@@ -100,6 +118,34 @@ public sealed class FrankfurterApiClientTests
 	}
 
 	[Fact]
+	public async Task GetLatestRateAsync_UsesFallbackErrorMessage_WhenJsonErrorBodyHasNoMessage()
+	{
+		var client = CreateClient(_ => CreateJsonResponse(
+			"""
+			{ "message": "" }
+			""",
+			HttpStatusCode.BadRequest));
+
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetLatestRateAsync("USD", "BTC"));
+
+		Assert.Equal("Frankfurter rejected the request parameters.", exception.Message);
+	}
+
+	[Fact]
+	public async Task GetLatestRateAsync_UsesUnprocessableEntityFallbackMessage()
+	{
+		var client = CreateClient(_ => CreateJsonResponse(
+			"""
+			{ "message": "" }
+			""",
+			HttpStatusCode.UnprocessableEntity));
+
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetLatestRateAsync("USD", "BTC"));
+
+		Assert.Equal("Frankfurter could not process the requested date range.", exception.Message);
+	}
+
+	[Fact]
 	public async Task GetLatestRateAsync_ThrowsFriendlyMessage_ForInvalidJson()
 	{
 		var client = CreateClient(_ => CreateJsonResponse("{ invalid json ]"));
@@ -119,6 +165,16 @@ public sealed class FrankfurterApiClientTests
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetLatestRateAsync("USD", "EUR"));
 
 		Assert.Equal("Frankfurter returned an invalid date: not-a-date", exception.Message);
+	}
+
+	[Fact]
+	public async Task GetCurrenciesAsync_ThrowsFriendlyMessage_ForEmptyPayload()
+	{
+		var client = CreateClient(_ => CreateJsonResponse("null"));
+
+		var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetCurrenciesAsync());
+
+		Assert.Equal("Frankfurter returned an empty response.", exception.Message);
 	}
 
 	private static FrankfurterApiClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler)

@@ -98,6 +98,37 @@ public sealed class ExchangeRatesServiceTests
 		Assert.Equal(1, api.GetHistoricalRatesCallCount);
 	}
 
+	[Fact]
+	public async Task GetHistoricalRatesAsync_NormalizesOneDayRange_ToLatestTwoPoints()
+	{
+		var api = new FakeFrankfurterApiClient
+		{
+			History =
+			[
+				new HistoricalRatePoint { Date = new DateOnly(2026, 1, 1), Rate = 1m },
+				new HistoricalRatePoint { Date = new DateOnly(2026, 1, 2), Rate = 2m },
+				new HistoricalRatePoint { Date = new DateOnly(2026, 1, 3), Rate = 3m }
+			]
+		};
+		var service = new ExchangeRatesService(api, new MemoryCacheService());
+
+		var history = await service.GetHistoricalRatesAsync("USD", "EUR", TimeRangeKind.OneDay);
+
+		Assert.Equal([2m, 3m], history.Select(point => point.Rate).ToArray());
+	}
+
+	[Fact]
+	public async Task GetHistoricalRatesAsync_ReturnsEmptyHistory_WhenApiReturnsNoData()
+	{
+		var api = new FakeFrankfurterApiClient();
+		var service = new ExchangeRatesService(api, new MemoryCacheService());
+
+		var history = await service.GetHistoricalRatesAsync("USD", "EUR", TimeRangeKind.OneMonth);
+
+		Assert.Empty(history);
+		Assert.Equal(1, api.GetHistoricalRatesCallCount);
+	}
+
 	[Theory]
 	[InlineData(TimeRangeKind.OneYear, "week")]
 	[InlineData(TimeRangeKind.FiveYears, "month")]

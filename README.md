@@ -145,10 +145,10 @@ dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj
 Run tests with coverage:
 
 ```powershell
-dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.IncludeTestAssembly=true
+dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj --collect:"XPlat Code Coverage" --settings .\CurrencyExchangeRates.Tests\coverage.runsettings
 ```
 
-The test project compiles the shared app source files directly so unit tests can run without spinning up the MAUI Windows app host.
+The test project compiles the shared app source files directly so unit tests can run without spinning up the MAUI Windows app host. The shared `coverage.runsettings` file keeps those linked app files in the report while excluding the test sources themselves.
 
 ## GitHub Actions
 

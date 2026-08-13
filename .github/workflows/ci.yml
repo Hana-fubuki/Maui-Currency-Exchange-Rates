@@ -42,7 +42,7 @@ jobs:
         run: dotnet build .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -c Release -f net10.0-windows10.0.19041.0 --no-restore
 
       - name: Run tests with coverage
-        run: dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.IncludeTestAssembly=true
+        run: dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --settings .\CurrencyExchangeRates.Tests\coverage.runsettings
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
