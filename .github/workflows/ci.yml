@@ -27,13 +27,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-          cache: true
 
       - name: Install MAUI Windows workload
         run: dotnet workload install maui-windows
 
-      - name: Restore app
-        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj
+      - name: Restore Windows target
+        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -p:TargetFramework=net10.0-windows10.0.19041.0
 
       - name: Restore tests
         run: dotnet restore .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj
