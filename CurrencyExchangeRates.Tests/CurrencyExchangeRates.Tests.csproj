@@ -5,32 +5,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
+    <PackageReference Include="Microsoft.Maui.Graphics" Version="10.0.20" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Microsoft.Maui">
-      <HintPath>..\CurrencyExchangeRates\bin\$(Configuration)\net10.0-windows10.0.19041.0\win-x64\Microsoft.Maui.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="Microsoft.Maui.Controls">
-      <HintPath>..\CurrencyExchangeRates\bin\$(Configuration)\net10.0-windows10.0.19041.0\win-x64\Microsoft.Maui.Controls.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <Reference Include="Microsoft.Maui.Graphics">
-      <HintPath>..\CurrencyExchangeRates\bin\$(Configuration)\net10.0-windows10.0.19041.0\win-x64\Microsoft.Maui.Graphics.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -48,12 +36,5 @@
     <Compile Include="..\CurrencyExchangeRates\Services\ExchangeRatesService.cs" Link="AppSource\Services\ExchangeRatesService.cs" />
     <Compile Include="..\CurrencyExchangeRates\Features\Exchange\ExchangeViewModel.cs" Link="AppSource\Features\Exchange\ExchangeViewModel.cs" />
   </ItemGroup>
-
-  <Target Name="BuildAppProject" BeforeTargets="ResolveReferences">
-    <MSBuild
-      Projects="..\CurrencyExchangeRates\CurrencyExchangeRates.csproj"
-      Targets="Build"
-      Properties="Configuration=$(Configuration);TargetFramework=net10.0-windows10.0.19041.0" />
-  </Target>
 
 </Project>

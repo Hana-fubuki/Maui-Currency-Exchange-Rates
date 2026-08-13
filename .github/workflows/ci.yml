@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+
+      - name: Install MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Restore app
+        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj
+
+      - name: Restore tests
+        run: dotnet restore .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj
+
+      - name: Build Windows target
+        run: dotnet build .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -c Release -f net10.0-windows10.0.19041.0 --no-restore
+
+      - name: Run tests with coverage
+        run: dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.IncludeTestAssembly=true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: CurrencyExchangeRates.Tests\TestResults\**\test-results.trx
+
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-results
+          path: CurrencyExchangeRates.Tests\TestResults\**\coverage.cobertura.xml
