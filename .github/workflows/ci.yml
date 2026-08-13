@@ -27,7 +27,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-          cache: true
 
       - name: Install MAUI Windows workload
         run: dotnet workload install maui-windows
