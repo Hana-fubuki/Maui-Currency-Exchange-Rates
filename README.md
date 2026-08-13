@@ -3,9 +3,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![.NET MAUI](https://img.shields.io/badge/.NET%20MAUI-10-512BD4?logo=dotnet)](https://learn.microsoft.com/dotnet/maui/)
 [![CI](https://github.com/Hana-fubuki/Maui-Currency-Exchange-Rates/actions/workflows/ci.yml/badge.svg)](https://github.com/Hana-fubuki/Maui-Currency-Exchange-Rates/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/Hana-fubuki/Maui-Currency-Exchange-Rates/actions/workflows/codeql.yml/badge.svg)](https://github.com/Hana-fubuki/Maui-Currency-Exchange-Rates/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Hana-fubuki/Maui-Currency-Exchange-Rates/badge)](https://scorecard.dev/viewer/?uri=github.com/Hana-fubuki/Maui-Currency-Exchange-Rates)
-[![OpenSSF](https://img.shields.io/badge/OpenSSF-security%20checks%20enabled-3fb950)](https://github.com/Hana-fubuki/Maui-Currency-Exchange-Rates/actions/workflows/scorecards.yml)
 
 A .NET MAUI currency converter that pulls live and historical exchange-rate data from the **Frankfurter API** and presents it in a Google-inspired desktop/mobile UI.
 
@@ -37,7 +35,7 @@ A .NET MAUI currency converter that pulls live and historical exchange-rate data
 | `CurrencyExchangeRates\Features\Exchange\` | Exchange screen UI, chart, and view model |
 | `CurrencyExchangeRates\Services\` | API client, cache, and exchange service |
 | `CurrencyExchangeRates.Tests\` | Unit tests for shared logic |
-| `.github\workflows\` | CI, CodeQL, and OpenSSF workflows |
+| `.github\workflows\` | Consolidated CI, code scanning, dependency review, and Scorecard automation |
 
 ## Prerequisites
 
@@ -152,12 +150,12 @@ The test project compiles the shared app source files directly so unit tests can
 
 ## GitHub Actions
 
-This repository includes:
+This repository uses a single `ci.yml` workflow with dedicated jobs for:
 
-- **CI**: restores workloads, builds the Windows target, runs tests, and uploads test/coverage artifacts.
+- **Build and test**: restores workloads, builds the Windows target, and uploads test/coverage artifacts.
 - **CodeQL**: scans the repository for C# security and code-quality issues.
-- **OpenSSF Scorecard**: runs repository security posture analysis and uploads SARIF results.
 - **Dependency Review**: checks dependency changes on pull requests.
+- **OpenSSF Scorecard**: runs repository security posture analysis and uploads SARIF results.
 
 ## API source
 
