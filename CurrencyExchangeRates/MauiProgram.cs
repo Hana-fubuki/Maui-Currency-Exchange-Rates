@@ -12,6 +12,33 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.ConfigureMauiHandlers(handlers =>
+			{
+				Microsoft.Maui.Handlers.EntryHandler.Mapper.AppendToMapping("FlatChrome", (handler, view) =>
+				{
+#if WINDOWS
+					if (Microsoft.UI.Xaml.Application.Current.Resources.TryGetValue("FlatEntryTextBoxStyle", out var styleObject) &&
+					    styleObject is Microsoft.UI.Xaml.Style style)
+					{
+						handler.PlatformView.Style = style;
+					}
+
+					handler.PlatformView.FocusVisualPrimaryThickness = new Microsoft.UI.Xaml.Thickness(0);
+					handler.PlatformView.FocusVisualSecondaryThickness = new Microsoft.UI.Xaml.Thickness(0);
+#endif
+				});
+
+				Microsoft.Maui.Handlers.PickerHandler.Mapper.AppendToMapping("FlatChrome", (handler, view) =>
+				{
+#if WINDOWS
+					handler.PlatformView.BorderThickness = new Microsoft.UI.Xaml.Thickness(0);
+					handler.PlatformView.Padding = new Microsoft.UI.Xaml.Thickness(0);
+					handler.PlatformView.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+					handler.PlatformView.FocusVisualPrimaryThickness = new Microsoft.UI.Xaml.Thickness(0);
+					handler.PlatformView.FocusVisualSecondaryThickness = new Microsoft.UI.Xaml.Thickness(0);
+#endif
+				});
+			})
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

@@ -6,10 +6,10 @@ public partial class App : Application
 {
 	private readonly AppShell appShell;
 
-	public App(AppShell appShell)
+	public App(IServiceProvider serviceProvider)
 	{
 		InitializeComponent();
-		this.appShell = appShell;
+		appShell = serviceProvider.GetRequiredService<AppShell>();
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
