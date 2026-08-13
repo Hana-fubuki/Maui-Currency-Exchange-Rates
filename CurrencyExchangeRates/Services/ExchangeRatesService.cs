@@ -1,4 +1,5 @@
-﻿using CurrencyExchangeRates.Models;
+﻿using System.Globalization;
+using CurrencyExchangeRates.Models;
 
 namespace CurrencyExchangeRates.Services;
 
@@ -6,6 +7,7 @@ public sealed class ExchangeRatesService(
 	IFrankfurterApiClient apiClient,
 	ICacheService cacheService) : IExchangeRatesService
 {
+	private static readonly DateOnly EarliestHistoricalDate = new(1999, 1, 4);
 	private static readonly TimeSpan CurrencyCacheTtl = TimeSpan.FromHours(24);
 	private static readonly TimeSpan LatestRateCacheTtl = TimeSpan.FromMinutes(10);
 	private static readonly TimeSpan HistoryCacheTtl = TimeSpan.FromMinutes(15);
@@ -58,15 +60,9 @@ public sealed class ExchangeRatesService(
 		TimeRangeKind range,
 		CancellationToken cancellationToken = default)
 	{
-		var request = HistoricalRequest.Create(range);
-
 		if (string.Equals(baseCurrency, quoteCurrency, StringComparison.OrdinalIgnoreCase))
 		{
-			return
-			[
-				new HistoricalRatePoint { Date = request.FromDate, Rate = 1m },
-				new HistoricalRatePoint { Date = DateOnly.FromDateTime(DateTime.UtcNow), Rate = 1m }
-			];
+			return CreateIdentityHistory(range);
 		}
 
 		var cacheKey = $"history:{baseCurrency}:{quoteCurrency}:{range}";
@@ -76,19 +72,46 @@ public sealed class ExchangeRatesService(
 			return cachedHistory;
 		}
 
-		var history = await apiClient.GetHistoricalRatesAsync(
-			baseCurrency,
-			quoteCurrency,
-			request.FromDate,
-			request.GroupBy,
-			cancellationToken);
-
-		var normalizedHistory = NormalizeHistory(history, range);
+		var fullHistory = await GetFullHistoricalRatesAsync(baseCurrency, quoteCurrency, cancellationToken);
+		var normalizedHistory = ProjectHistoryForRange(fullHistory, range);
 		cacheService.Set(cacheKey, normalizedHistory, HistoryCacheTtl);
 		return normalizedHistory;
 	}
 
-	private static IReadOnlyList<HistoricalRatePoint> NormalizeHistory(
+	private async Task<IReadOnlyList<HistoricalRatePoint>> GetFullHistoricalRatesAsync(
+		string baseCurrency,
+		string quoteCurrency,
+		CancellationToken cancellationToken)
+	{
+		var cacheKey = $"history:{baseCurrency}:{quoteCurrency}:all";
+		if (cacheService.TryGetValue<IReadOnlyList<HistoricalRatePoint>>(cacheKey, out var cachedHistory) &&
+			cachedHistory is not null)
+		{
+			return cachedHistory;
+		}
+
+		var history = await apiClient.GetHistoricalRatesAsync(
+			baseCurrency,
+			quoteCurrency,
+			EarliestHistoricalDate,
+			groupBy: null,
+			cancellationToken);
+
+		cacheService.Set(cacheKey, history, HistoryCacheTtl);
+		return history;
+	}
+
+	private static IReadOnlyList<HistoricalRatePoint> CreateIdentityHistory(TimeRangeKind range)
+	{
+		var request = HistoricalRequest.Create(range);
+		return
+		[
+			new HistoricalRatePoint { Date = request.FromDate, Rate = 1m },
+			new HistoricalRatePoint { Date = DateOnly.FromDateTime(DateTime.UtcNow), Rate = 1m }
+		];
+	}
+
+	private static IReadOnlyList<HistoricalRatePoint> ProjectHistoryForRange(
 		IReadOnlyList<HistoricalRatePoint> history,
 		TimeRangeKind range)
 	{
@@ -97,20 +120,62 @@ public sealed class ExchangeRatesService(
 			return Array.Empty<HistoricalRatePoint>();
 		}
 
-		if (range == TimeRangeKind.FiveDays && history.Count > 5)
+		var request = HistoricalRequest.Create(range);
+		var rangeHistory = history
+			.Where(point => point.Date >= request.FromDate)
+			.ToArray();
+
+		if (rangeHistory.Length == 0)
 		{
-			return history.TakeLast(5).ToArray();
+			return Array.Empty<HistoricalRatePoint>();
 		}
 
-		if (range == TimeRangeKind.OneDay && history.Count > 2)
+		rangeHistory = request.GroupBy switch
 		{
-			return history.TakeLast(2).ToArray();
+			HistoricalGrouping.Week => GroupHistoryByWeek(rangeHistory),
+			HistoricalGrouping.Month => GroupHistoryByMonth(rangeHistory),
+			_ => rangeHistory
+		};
+
+		if (range == TimeRangeKind.FiveDays && rangeHistory.Length > 5)
+		{
+			return rangeHistory.TakeLast(5).ToArray();
 		}
 
-		return history;
+		if (range == TimeRangeKind.OneDay && rangeHistory.Length > 2)
+		{
+			return rangeHistory.TakeLast(2).ToArray();
+		}
+
+		return rangeHistory;
 	}
 
-	private sealed record HistoricalRequest(DateOnly FromDate, string? GroupBy)
+	private static HistoricalRatePoint[] GroupHistoryByWeek(IEnumerable<HistoricalRatePoint> history)
+	{
+		return history
+			.GroupBy(point => (Year: ISOWeek.GetYear(point.Date.ToDateTime(TimeOnly.MinValue)), Week: ISOWeek.GetWeekOfYear(point.Date.ToDateTime(TimeOnly.MinValue))))
+			.Select(group => group.OrderBy(point => point.Date).Last())
+			.OrderBy(point => point.Date)
+			.ToArray();
+	}
+
+	private static HistoricalRatePoint[] GroupHistoryByMonth(IEnumerable<HistoricalRatePoint> history)
+	{
+		return history
+			.GroupBy(point => (point.Date.Year, point.Date.Month))
+			.Select(group => group.OrderBy(point => point.Date).Last())
+			.OrderBy(point => point.Date)
+			.ToArray();
+	}
+
+	private enum HistoricalGrouping
+	{
+		None,
+		Week,
+		Month
+	}
+
+	private sealed record HistoricalRequest(DateOnly FromDate, HistoricalGrouping GroupBy)
 	{
 		public static HistoricalRequest Create(TimeRangeKind range)
 		{
@@ -118,12 +183,12 @@ public sealed class ExchangeRatesService(
 
 			return range switch
 			{
-				TimeRangeKind.OneDay => new HistoricalRequest(today.AddDays(-1), null),
-				TimeRangeKind.FiveDays => new HistoricalRequest(today.AddDays(-5), null),
-				TimeRangeKind.OneMonth => new HistoricalRequest(today.AddMonths(-1), null),
-				TimeRangeKind.OneYear => new HistoricalRequest(today.AddYears(-1), "week"),
-				TimeRangeKind.FiveYears => new HistoricalRequest(today.AddYears(-5), "month"),
-				TimeRangeKind.Max => new HistoricalRequest(new DateOnly(1999, 1, 4), "month"),
+				TimeRangeKind.OneDay => new HistoricalRequest(today.AddDays(-1), HistoricalGrouping.None),
+				TimeRangeKind.FiveDays => new HistoricalRequest(today.AddDays(-5), HistoricalGrouping.None),
+				TimeRangeKind.OneMonth => new HistoricalRequest(today.AddMonths(-1), HistoricalGrouping.None),
+				TimeRangeKind.OneYear => new HistoricalRequest(today.AddYears(-1), HistoricalGrouping.Week),
+				TimeRangeKind.FiveYears => new HistoricalRequest(today.AddYears(-5), HistoricalGrouping.Month),
+				TimeRangeKind.Max => new HistoricalRequest(EarliestHistoricalDate, HistoricalGrouping.Month),
 				_ => throw new ArgumentOutOfRangeException(nameof(range), range, "Unsupported time range.")
 			};
 		}

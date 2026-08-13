@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -39,7 +39,7 @@ jobs:
         run: dotnet workload install maui-windows
 
       - name: Restore Windows target
-        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -p:TargetFramework=${{ env.WINDOWS_TFM }} -p:RuntimeIdentifier=${{ env.WINDOWS_RID }}
+        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -r ${{ env.WINDOWS_RID }} -p:TargetFramework=${{ env.WINDOWS_TFM }}
 
       - name: Restore tests
         run: dotnet restore .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj
@@ -51,14 +51,14 @@ jobs:
         run: dotnet test .\CurrencyExchangeRates.Tests\CurrencyExchangeRates.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --settings .\CurrencyExchangeRates.Tests\coverage.runsettings
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: test-results
           path: CurrencyExchangeRates.Tests\TestResults\**\test-results.trx
 
       - name: Upload coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: coverage-results
@@ -74,7 +74,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Dependency review
         uses: actions/dependency-review-action@v4
@@ -95,7 +95,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -106,10 +106,10 @@ jobs:
         run: dotnet workload install maui-windows
 
       - name: Restore Windows target
-        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -p:TargetFramework=${{ env.WINDOWS_TFM }} -p:RuntimeIdentifier=${{ env.WINDOWS_RID }}
+        run: dotnet restore .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -r ${{ env.WINDOWS_RID }} -p:TargetFramework=${{ env.WINDOWS_TFM }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: csharp
           build-mode: manual
@@ -118,7 +118,7 @@ jobs:
         run: dotnet build .\CurrencyExchangeRates\CurrencyExchangeRates.csproj -c Release -f ${{ env.WINDOWS_TFM }} -r ${{ env.WINDOWS_RID }} --no-restore
 
       - name: Analyze
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
   scorecards:
     if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule' || github.event_name == 'push'
@@ -132,7 +132,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
@@ -144,12 +144,12 @@ jobs:
           publish_results: true
 
       - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
 
       - name: Upload Scorecard artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: scorecard-results
           path: results.sarif
