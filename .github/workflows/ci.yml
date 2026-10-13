@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-  branch_protection_rule:
   schedule:
     - cron: '23 4 * * 1'
     - cron: '41 5 * * 1'
@@ -118,7 +117,7 @@ jobs:
         uses: github/codeql-action/analyze@v4
 
   scorecards:
-    if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule' || github.event_name == 'push'
+    if: github.event_name == 'schedule' || github.event_name == 'push'
     name: OpenSSF Scorecard
     runs-on: ubuntu-latest
     permissions:
@@ -134,7 +133,7 @@ jobs:
           persist-credentials: false
 
       - name: Run OpenSSF Scorecard
-        uses: ossf/scorecard-action@v2.4.0
+        uses: ossf/scorecard-action@v2.5.0
         with:
           results_file: results.sarif
           results_format: sarif
